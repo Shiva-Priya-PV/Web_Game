@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Hungry Island - Escape Room</title>
+    <style>
+        /* --- CORE STYLES --- */
+        :root {
+            --blood-red: #ff0000;
+            --dark-red: #8a0303;
+            --text-color: #e0e0e0;
+            --bg-color: #050000;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'Times New Roman', Times, serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            user-select: none;
+        }
+
+        /* --- BACKGROUND ANIMATIONS (THE INSANE VISUALS) --- */
+        #fx-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .flying-entity {
+            position: absolute;
+            font-size: 2rem;
+            opacity: 0.8;
+            filter: drop-shadow(0 0 10px rgba(255, 0, 0, 0.7));
+            animation-timing-function: linear;
+        }
+
+        /* Bright Skulls */
+        .skull-bright {
+            filter: drop-shadow(0 0 15px white) brightness(2.0);
+            z-index: 1;
+        }
+
+        /* Animation Keyframes */
+        @keyframes floatUp {
+            0% { transform: translateY(110vh) translateX(0) rotate(0deg) scale(0.5); opacity: 0; }
+            20% { opacity: 1; }
+            80% { opacity: 1; }
+            100% { transform: translateY(-10vh) translateX(20px) rotate(360deg) scale(1.5); opacity: 0; }
+        }
+
+        @keyframes fallDown {
+            0% { transform: translateY(-10vh) translateX(0) rotate(0deg); opacity: 0; }
+            20% { opacity: 1; }
+            100% { transform: translateY(110vh) translateX(-50px) rotate(-360deg); opacity: 0; }
+        }
+
+        @keyframes roamErratic {
+            0% { transform: translate(0, 0) scale(1); opacity: 0; }
+            10% { opacity: 0.8; }
+            25% { transform: translate(100px, -50px) rotate(45deg); }
+            50% { transform: translate(-50px, 100px) rotate(-45deg) scale(1.5); }
+            75% { transform: translate(50px, 50px) rotate(90deg); }
+            100% { transform: translate(-100px, -100px) rotate(180deg) scale(0.5); opacity: 0; }
+        }
+
+        @keyframes cometFly {
+            0% { left: -10%; top: 10%; opacity: 1; transform: scale(1); }
+            100% { left: 110%; top: 90%; opacity: 0; transform: scale(0.5); }
+        }
+
+        /* --- UI CONTAINERS --- */
+        #game-container {
+            position: relative;
+            z-index: 10;
+            width: 85%;
+            max-width: 900px;
+            background: rgba(10, 10, 10, 0.95);
+            border: 3px solid var(--blood-red);
+            box-shadow: 0 0 60px rgba(255, 0, 0, 0.4), inset 0 0 50px rgba(0,0,0,0.8);
+            padding: 40px;
+            text-align: center;
+            border-radius: 5px;
+            backdrop-filter: blur(10px);
+        }
+
+        .screen {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        h1 {
+            font-size: 3.5em;
+            color: var(--blood-red);
+            text-transform: uppercase;
+            letter-spacing: 6px;
+            text-shadow: 0 0 15px red, 0 0 30px black;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+
+        h2 {
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            color: #fff;
+            text-shadow: 0 0 5px #888;
+        }
+
+        p {
+            font-size: 1.3em;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* --- IMAGES --- */
+        .question-img {
+            max-width: 100%;
+            max-height: 280px;
+            border: 2px solid #333;
+            margin-bottom: 20px;
+            box-shadow: 0 0 25px rgba(0,0,0,0.8);
+        }
+
+        /* --- BUTTONS --- */
+        .btn {
+            background: rgba(0,0,0,0.6);
+            border: 1px solid var(--text-color);
+            color: var(--text-color);
+            padding: 15px 30px;
+            font-family: 'Times New Roman', serif;
+            font-size: 1.3em;
+            cursor: pointer;
+            transition: all 0.2s;
+            margin: 8px;
+            width: 90%;
+            max-width: 500px;
+            position: relative;
+            overflow: hidden;
+            text-shadow: 0 0 2px black;
+        }
+
+        .btn:hover {
+            background: var(--dark-red);
+            border-color: var(--blood-red);
+            box-shadow: 0 0 20px var(--blood-red);
+            transform: scale(1.03);
+        }
+
+        .btn:disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            background: #222;
+            border-color: #444;
+            transform: none;
+        }
+
+        .start-btn {
+            background: var(--dark-red);
+            border: 2px solid red;
+            font-weight: bold;
+            font-size: 1.8em;
+            box-shadow: 0 0 20px red;
+            animation: pulseBtn 2s infinite;
+        }
+
+        @keyframes pulseBtn {
+            0% { box-shadow: 0 0 20px red; }
+            50% { box-shadow: 0 0 40px red; }
+            100% { box-shadow: 0 0 20px red; }
+        }
+
+        /* --- TIMER --- */
+        #timer {
+            position: absolute;
+            top: -25px;
+            right: 20px;
+            background: black;
+            border: 2px solid var(--blood-red);
+            padding: 10px 25px;
+            font-size: 1.8em;
+            color: red;
+            font-weight: bold;
+            box-shadow: 0 0 20px red;
+            z-index: 20;
+        }
+
+        /* --- HINTS & PENALTY --- */
+        .hint-box {
+            margin-top: 25px;
+            color: #ffaa00;
+            font-style: italic;
+            font-size: 1.4em;
+            display: none;
+            border: 1px dashed #ffaa00;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+        }
+
+        #penalty-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.9);
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            border-radius: 5px;
+        }
+
+        #penalty-msg {
+            font-size: 2em;
+            color: red;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px red;
+        }
+
+        #penalty-timer {
+            font-size: 5em;
+            font-weight: bold;
+            color: white;
+        }
+
+        /* --- END SCREEN POETRY --- */
+        .poetry {
+            font-style: italic;
+            margin-top: 30px;
+            color: #888;
+            font-size: 1.1em;
+        }
+
+    </style>
+</head>
+<body>
+
+    <div id="fx-container"></div>
+
+    <div id="game-container">
+        
+        <div id="intro-screen" class="screen active">
+            <img src="img1.jpg" alt="Intro Image" class="question-img">
+            <h1>The Hungry Island</h1>
+            <div style="border-top: 1px solid var(--blood-red); border-bottom: 1px solid var(--blood-red); padding: 20px; margin: 20px 0;">
+                <h2>Instructions</h2>
+                <p>Welcome, lost soul.</p>
+                <ul style="list-style: none; padding: 0; font-size: 1.1em;">
+                    <li>☠️ You have <strong>10 Minutes</strong> to escape.</li>
+                    <li>☠️ Choose carefully. <strong>WRONG ANSWERS ARE FATAL.</strong></li>
+                    <li>☠️ If you choose wrong, you will be <strong>LOCKED OUT for 1 Minute</strong>.</li>
+                    <li>☠️ Hints are only revealed <strong>AFTER</strong> the penalty time.</li>
+                </ul>
+            </div>
+            <button class="btn start-btn" onclick="startGame()">ENTER THE ISLAND</button>
+        </div>
+
+        <div id="game-screen" class="screen">
+            <div id="timer">10:00</div>
+            
+            <div id="penalty-overlay">
+                <div id="penalty-msg">WRONG CHOICE<br>THE ISLAND IS ANGRY</div>
+                <div id="penalty-timer">60</div>
+                <div style="color: #aaa; margin-top: 10px;">Waiting for penalty to end...</div>
+            </div>
+
+            <img id="q-image" src="" alt="Puzzle" class="question-img">
+            <h2 id="q-text">Question Text Here</h2>
+            
+            <div id="options-container">
+            </div>
+
+            <div id="hint-display" class="hint-box">
+            </div>
+        </div>
+
+        <div id="end-screen" class="screen">
+            <h1>Escaped... For Now.</h1>
+            <p class="poetry">
+                "Sun-catchers guard my height,<br>
+                Two levels sleep beneath my sight.<br>
+                In the realm of code, where am I?"
+            </p>
+            <p>You survived The Hungry Island.</p>
+            <audio id="end-music" autoplay loop>
+                <source src="horror_music.mp3" type="audio/mpeg">
+                Your browser does not support the audio element.
+            </audio>
+        </div>
+
+    </div>
+
+    <script>
+        // --- GAME DATA ---
+        const questions = [
+            {
+                id: 1,
+                text: 'You reach the island and see three paths. Only one is safe. A board says: "Choose the path that survivors take." Which path do you choose?',
+                img: 'img2.jpg',
+                options: [
+                    { text: 'A. Path with skeletons', correct: false },
+                    { text: 'B. Path with fresh footprints', correct: true },
+                    { text: 'C. Path with no footprints', correct: false },
+                    { text: 'D. Path with animal bones', correct: false }
+                ],
+                hint: 'Hint: Skeletons are dead. No footprints means nobody walked. Someone alive leaves fresh prints.'
+            },
+            {
+                id: 2,
+                text: 'You find a locked door with a code. The clue says: "Hungry Island has 3 tribes. Each tribe eats every 2 days. After 6 days, how many meals?"',
+                img: 'img3.jpg',
+                options: [
+                    { text: 'A. 3', correct: false },
+                    { text: 'B. 6', correct: false },
+                    { text: 'C. 9', correct: true },
+                    { text: 'D. 12', correct: false }
+                ],
+                hint: 'Hint: 3 Tribes. In 6 days, if they eat every 2 days, they eat 3 times each. 3 tribes * 3 meals = 9.'
+            },
+            {
+                id: 3,
+                text: 'A message says: "Only even-numbered rocks are safe. The sum of rock numbers is 26." Which pair is safe?',
+                img: 'img4.jpg',
+                options: [
+                    { text: 'A. 12 & 14', correct: true },
+                    { text: 'B. 10 & 4', correct: false },
+                    { text: 'C. 8 & 2', correct: false },
+                    { text: 'D. 7 & 5', correct: false }
+                ],
+                hint: 'Hint: 12 + 14 = 26. Both are even numbers.'
+            },
+            {
+                id: 4,
+                text: 'You find three idols: Teeth, Fire, Smoke. A prophecy says: "Choose the one that saves you from hungry peoples"',
+                img: 'img5.jpg',
+                options: [
+                    { text: 'A. Teeth', correct: false },
+                    { text: 'B. Fire', correct: true },
+                    { text: 'C. Smoke', correct: false },
+                    { text: 'D. All of them', correct: false }
+                ],
+                hint: 'Hint: Primitive savages and beasts fear Fire.'
+            },
+            {
+                id: 5,
+                text: 'A cannibal island trap has three triggers: Feather, Stone, Bone. Clue says: "Pick the object they worship"',
+                img: 'img6.jpg',
+                options: [
+                    { text: 'A. Feather', correct: false },
+                    { text: 'B. Stone', correct: false },
+                    { text: 'C. Bone', correct: true },
+                    { text: 'D. None', correct: false }
+                ],
+                hint: 'Hint: Cannibals worship death. They use Bones.'
+            },
+            {
+                id: 6,
+                text: 'A cannibal chant echoes: "Two shadows walk, but only one is alive." You see two shadows approaching. What should you do?',
+                img: 'img7.jpg',
+                options: [
+                    { text: 'A. Run toward them', correct: false },
+                    { text: 'B. Light a fire', correct: false },
+                    { text: 'C. Hide behind rocks', correct: true },
+                    { text: 'D. Shout for help', correct: false }
+                ],
+                hint: 'Hint: Shadows mean they are near. Hiding is the only way to survive.'
+            },
+            {
+                id: 7,
+                text: 'A stone puzzle says: "Cannibals fear what they cannot see, but smell what is near." Which tool helps you avoid them?',
+                img: 'img8.jpg',
+                options: [
+                    { text: 'A. Torch', correct: false },
+                    { text: 'B. Perfume', correct: false },
+                    { text: 'C. Mud', correct: true },
+                    { text: 'D. Sharp knife', correct: false }
+                ],
+                hint: 'Hint: Mud masks your scent, making you invisible to their nose.'
+            }
+        ];
+
+        // --- STATE VARIABLES ---
+        let currentQuestionIndex = 0;
+        let timeLeft = 600; // 10 minutes global timer
+        let globalTimerInterval;
+        let penaltyInterval;
+
+        // --- DOM ELEMENTS ---
+        const introScreen = document.getElementById('intro-screen');
+        const gameScreen = document.getElementById('game-screen');
+        const endScreen = document.getElementById('end-screen');
+        const timerDisplay = document.getElementById('timer');
+        
+        const qImage = document.getElementById('q-image');
+        const qText = document.getElementById('q-text');
+        const optionsContainer = document.getElementById('options-container');
+        const hintDisplay = document.getElementById('hint-display');
+        
+        const penaltyOverlay = document.getElementById('penalty-overlay');
+        const penaltyTimerDisplay = document.getElementById('penalty-timer');
+
+        // --- GAME LOGIC ---
+
+        function startGame() {
+            introScreen.classList.remove('active');
+            gameScreen.classList.add('active');
+            loadQuestion();
+            startGlobalTimer();
+        }
+
+        function startGlobalTimer() {
+            globalTimerInterval = setInterval(() => {
+                if (timeLeft <= 0) {
+                    clearInterval(globalTimerInterval);
+                    alert("TIME IS UP! The island claims you forever.");
+                    location.reload(); 
+                } else {
+                    timeLeft--;
+                    let minutes = Math.floor(timeLeft / 60);
+                    let seconds = timeLeft % 60;
+                    timerDisplay.textContent = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
+                    
+                    if(timeLeft < 60) {
+                        timerDisplay.style.color = "red";
+                        timerDisplay.style.textShadow = "0 0 15px red, 0 0 30px red";
+                    }
+                }
+            }, 1000);
+        }
+
+        function loadQuestion() {
+            hintDisplay.style.display = 'none';
+            const q = questions[currentQuestionIndex];
+            
+            qImage.src = q.img;
+            qText.textContent = `Q${q.id}) ${q.text}`;
+            
+            optionsContainer.innerHTML = '';
+
+            q.options.forEach(opt => {
+                const btn = document.createElement('button');
+                btn.classList.add('btn');
+                btn.textContent = opt.text;
+                btn.onclick = () => checkAnswer(opt.correct, q.hint, btn);
+                optionsContainer.appendChild(btn);
+            });
+        }
+
+        function checkAnswer(isCorrect, hintText, clickedBtn) {
+            if (isCorrect) {
+                currentQuestionIndex++;
+                if (currentQuestionIndex < questions.length) {
+                    loadQuestion();
+                } else {
+                    finishGame();
+                }
+            } else {
+                // INCORRECT: TRIGGER PENALTY
+                startPenalty(hintText);
+            }
+        }
+
+        function startPenalty(hintText) {
+            // Disable all buttons
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(b => b.disabled = true);
+
+            // Show Penalty Overlay
+            penaltyOverlay.style.display = 'flex';
+            
+            let penaltyTime = 60; // 60 seconds (1 minute)
+            penaltyTimerDisplay.textContent = penaltyTime;
+
+            penaltyInterval = setInterval(() => {
+                penaltyTime--;
+                penaltyTimerDisplay.textContent = penaltyTime;
+
+                if (penaltyTime <= 0) {
+                    clearInterval(penaltyInterval);
+                    endPenalty(hintText);
+                }
+            }, 1000);
+        }
+
+        function endPenalty(hintText) {
+            penaltyOverlay.style.display = 'none';
+            
+            // Show Hint AFTER penalty
+            hintDisplay.textContent = hintText;
+            hintDisplay.style.display = 'block';
+
+            // Re-enable buttons so they can try again
+            const buttons = document.querySelectorAll('.btn');
+            buttons.forEach(b => b.disabled = false);
+        }
+
+        function finishGame() {
+            clearInterval(globalTimerInterval);
+            clearInterval(penaltyInterval);
+            gameScreen.classList.remove('active');
+            endScreen.classList.add('active');
+            
+            // Play audio with better error handling
+            const audio = document.getElementById('end-music');
+            audio.volume = 0.5;
+            
+            // Try to play
+            const playPromise = audio.play();
+            
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        console.log("Audio playing successfully");
+                    })
+                    .catch(error => {
+                        console.log("Autoplay prevented. Adding play button.");
+                        // Add a play button if autoplay fails
+                        const playBtn = document.createElement('button');
+                        playBtn.textContent = '🔊 Play Horror Music';
+                        playBtn.className = 'btn';
+                        playBtn.style.marginTop = '20px';
+                        playBtn.onclick = () => {
+                            audio.play();
+                            playBtn.remove();
+                        };
+                        endScreen.appendChild(playBtn);
+                    });
+            }
+        }
+
+        // --- INSANE BACKGROUND ANIMATION LOGIC ---
+        const emojis = ["👻","🦴","☄️","🪦","☠️","💀","👹"];
+        
+        function createEffects() {
+            const container = document.getElementById('fx-container');
+            
+            setInterval(() => {
+                const entity = document.createElement('div');
+                entity.classList.add('flying-entity');
+                
+                // Pick random emoji
+                const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+                entity.textContent = randomEmoji;
+                
+                // Special style for Skulls to make them bright
+                if(randomEmoji === "💀" || randomEmoji === "☠️") {
+                    entity.classList.add('skull-bright');
+                }
+
+                // Random Position
+                entity.style.left = Math.random() * 100 + 'vw';
+                entity.style.top = Math.random() * 100 + 'vh';
+                
+                // Random Size
+                const size = Math.random() * 3 + 1; // 1rem to 4rem
+                entity.style.fontSize = size + 'rem';
+
+                // Random Animation Type
+                const animations = ['floatUp', 'fallDown', 'roamErratic'];
+                const randomAnim = animations[Math.floor(Math.random() * animations.length)];
+                
+                entity.style.animationName = randomAnim;
+                entity.style.animationDuration = (Math.random() * 5 + 4) + 's'; // 4 to 9 seconds
+
+                container.appendChild(entity);
+
+                // Cleanup
+                setTimeout(() => entity.remove(), 9000);
+            }, 300); // Spawns very frequently for "Insane" look
+            
+            // Special Comet effect occasionally
+            setInterval(() => {
+                const comet = document.createElement('div');
+                comet.classList.add('flying-entity');
+                comet.textContent = "☄️";
+                comet.style.animationName = "cometFly";
+                comet.style.animationDuration = "2s";
+                container.appendChild(comet);
+                setTimeout(() => comet.remove(), 2000);
+            }, 4000);
+        }
+
+        // Start Effects
+        createEffects();
+
+    </script>
+</body>
+</html>
